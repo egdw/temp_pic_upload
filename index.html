@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机传感器数据监测</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .sensor-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .sensor-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+        .sensor-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .data-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .data-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        .data-value {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+        }
+        .success {
+            background: rgba(0, 255, 0, 0.2);
+        }
+        .permission-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        .permission-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        .permission-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 手机传感器数据监测</h1>
+        
+        <div class="status" id="status">
+            <p>正在初始化传感器...</p>
+            <button class="permission-btn" id="requestPermission">请求传感器权限</button>
+            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                <p>💡 使用提示：</p>
+                <p>• 请在手机上访问此页面</p>
+                <p>• 需要HTTPS环境或localhost</p>
+                <p>• iOS请使用Safari，Android请使用Chrome</p>
+                <p>• 点击权限按钮后移动手机以激活传感器</p>
+            </div>
+        </div>
+
+        <!-- 陀螺仪数据 -->
+        <div class="sensor-card">
+            <div class="sensor-title">🌀 陀螺仪 (Gyroscope)</div>
+            <div class="sensor-data">
+                <div class="data-item">
+                    <div class="data-label">X轴角速度</div>
+                    <div class="data-value" id="gyro-x">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Y轴角速度</div>
+                    <div class="data-value" id="gyro-y">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Z轴角速度</div>
+                    <div class="data-value" id="gyro-z">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加速度计数据 -->
+        <div class="sensor-card">
+            <div class="sensor-title">⚡ 加速度计 (Accelerometer)</div>
+            <div class="sensor-data">
+                <div class="data-item">
+                    <div class="data-label">X轴加速度</div>
+                    <div class="data-value" id="accel-x">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Y轴加速度</div>
+                    <div class="data-value" id="accel-y">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Z轴加速度</div>
+                    <div class="data-value" id="accel-z">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方向传感器数据 -->
+        <div class="sensor-card">
+            <div class="sensor-title">🧭 方向传感器 (Orientation)</div>
+            <div class="sensor-data">
+                <div class="data-item">
+                    <div class="data-label">Alpha (Z轴)</div>
+                    <div class="data-value" id="orient-alpha">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Beta (X轴)</div>
+                    <div class="data-value" id="orient-beta">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Gamma (Y轴)</div>
+                    <div class="data-value" id="orient-gamma">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 重力传感器数据 -->
+        <div class="sensor-card">
+            <div class="sensor-title">🌍 重力传感器 (Gravity)</div>
+            <div class="sensor-data">
+                <div class="data-item">
+                    <div class="data-label">重力X</div>
+                    <div class="data-value" id="gravity-x">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">重力Y</div>
+                    <div class="data-value" id="gravity-y">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">重力Z</div>
+                    <div class="data-value" id="gravity-z">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 计步器数据 -->
+        <div class="sensor-card">
+            <div class="sensor-title">👣 计步器 (Step Counter)</div>
+            <div class="sensor-data">
+                <div class="data-item">
+                    <div class="data-label">总步数</div>
+                    <div class="data-value" id="step-count">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">检测状态</div>
+                    <div class="data-value" id="step-status">未检测</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SensorMonitor {
+            constructor() {
+                this.sensors = {
+                    gyroscope: null,
+                    accelerometer: null,
+                    gravity: null
+                };
+                this.stepCount = 0;
+                this.lastAcceleration = { x: 0, y: 0, z: 0 };
+                this.stepThreshold = 12; // 步数检测阈值
+                this.lastStepTime = 0;
+                this.init();
+            }
+
+            async init() {
+                this.updateStatus('正在检查传感器支持...', 'status');
+                
+                // 检查浏览器支持
+                if (!this.checkBrowserSupport()) {
+                    const userAgent = navigator.userAgent;
+                    let errorMsg = '您的浏览器不支持传感器API。';
+                    
+                    if (!window.isSecureContext && location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                        errorMsg += ' 传感器API需要HTTPS环境或localhost。';
+                    }
+                    
+                    if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+                        errorMsg += ' iOS设备请使用Safari浏览器。';
+                    } else if (userAgent.includes('Android')) {
+                        errorMsg += ' Android设备请使用Chrome浏览器。';
+                    }
+                    
+                    this.updateStatus(errorMsg, 'error');
+                    
+                    // 即使检测失败，也尝试启动传感器（某些浏览器检测不准确）
+                    console.log('尝试强制启动传感器...');
+                    this.startSensors();
+                    return;
+                }
+
+                // 绑定权限请求按钮
+                document.getElementById('requestPermission').addEventListener('click', () => {
+                    this.requestPermissions();
+                });
+
+                // 检测是否为移动设备
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                if (!isMobile) {
+                    this.updateStatus('检测到桌面浏览器，启动演示模式...', 'status');
+                    this.startDemoMode();
+                } else {
+                    // 自动尝试启动传感器
+                    await this.requestPermissions();
+                }
+            }
+
+            checkBrowserSupport() {
+                // 检查基本的传感器事件支持
+                const hasDeviceMotion = 'DeviceMotionEvent' in window;
+                const hasDeviceOrientation = 'DeviceOrientationEvent' in window;
+                
+                // 检查是否在安全上下文中（HTTPS或localhost）
+                const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+                
+                console.log('浏览器支持检测:', {
+                    hasDeviceMotion,
+                    hasDeviceOrientation,
+                    isSecureContext,
+                    userAgent: navigator.userAgent
+                });
+                
+                return hasDeviceMotion && hasDeviceOrientation;
+            }
+
+            async requestPermissions() {
+                try {
+                    this.updateStatus('正在请求传感器权限...', 'status');
+                    
+                    let permissionGranted = true;
+                    
+                    // 请求设备运动权限 (iOS 13+)
+                    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                        try {
+                            const motionPermission = await DeviceMotionEvent.requestPermission();
+                            if (motionPermission !== 'granted') {
+                                permissionGranted = false;
+                                console.log('设备运动权限被拒绝');
+                            }
+                        } catch (e) {
+                            console.log('请求设备运动权限时出错:', e);
+                        }
+                    }
+
+                    // 请求设备方向权限 (iOS 13+)
+                    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                        try {
+                            const orientationPermission = await DeviceOrientationEvent.requestPermission();
+                            if (orientationPermission !== 'granted') {
+                                permissionGranted = false;
+                                console.log('设备方向权限被拒绝');
+                            }
+                        } catch (e) {
+                            console.log('请求设备方向权限时出错:', e);
+                        }
+                    }
+
+                    // 无论权限如何，都尝试启动传感器
+                    this.startSensors();
+                    
+                    if (permissionGranted) {
+                        this.updateStatus('传感器已启动，正在监测数据...', 'success');
+                    } else {
+                        this.updateStatus('权限可能被拒绝，但仍在尝试获取传感器数据...', 'status');
+                    }
+                    
+                    document.getElementById('requestPermission').disabled = true;
+                    
+                } catch (error) {
+                    console.log('权限请求过程中出错:', error);
+                    this.updateStatus('正在尝试启动传感器...', 'status');
+                    this.startSensors();
+                }
+            }
+
+            startSensors() {
+                let motionDataReceived = false;
+                let orientationDataReceived = false;
+                
+                // 启动陀螺仪和加速度计
+                window.addEventListener('devicemotion', (event) => {
+                    if (!motionDataReceived) {
+                        motionDataReceived = true;
+                        console.log('收到设备运动数据');
+                        this.updateStatus('传感器数据正常，正在监测...', 'success');
+                    }
+                    this.handleDeviceMotion(event);
+                });
+
+                // 启动方向传感器
+                window.addEventListener('deviceorientation', (event) => {
+                    if (!orientationDataReceived) {
+                        orientationDataReceived = true;
+                        console.log('收到设备方向数据');
+                    }
+                    this.handleDeviceOrientation(event);
+                });
+
+                // 5秒后检查是否收到数据
+                setTimeout(() => {
+                    if (!motionDataReceived && !orientationDataReceived) {
+                        this.updateStatus('未检测到传感器数据。请确保：1) 使用手机访问 2) 允许传感器权限 3) 移动设备以激活传感器', 'error');
+                    } else if (!motionDataReceived) {
+                        this.updateStatus('仅检测到方向数据，运动传感器可能不可用', 'status');
+                    }
+                }, 5000);
+
+                // 尝试使用新的传感器API (如果支持)
+                this.tryNewSensorAPI();
+            }
+
+            startDemoMode() {
+                // 演示模式：生成模拟传感器数据
+                this.updateStatus('演示模式：显示模拟传感器数据（请在手机上访问以获取真实数据）', 'status');
+                document.getElementById('requestPermission').style.display = 'none';
+                
+                let time = 0;
+                setInterval(() => {
+                    time += 0.1;
+                    
+                    // 模拟陀螺仪数据
+                    document.getElementById('gyro-x').textContent = (Math.sin(time) * 50).toFixed(2) + ' °/s';
+                    document.getElementById('gyro-y').textContent = (Math.cos(time) * 30).toFixed(2) + ' °/s';
+                    document.getElementById('gyro-z').textContent = (Math.sin(time * 0.5) * 20).toFixed(2) + ' °/s';
+                    
+                    // 模拟加速度计数据
+                    document.getElementById('accel-x').textContent = (Math.sin(time * 2) * 2).toFixed(2) + ' m/s²';
+                    document.getElementById('accel-y').textContent = (Math.cos(time * 1.5) * 1.5).toFixed(2) + ' m/s²';
+                    document.getElementById('accel-z').textContent = (9.8 + Math.sin(time) * 0.5).toFixed(2) + ' m/s²';
+                    
+                    // 模拟方向数据
+                    document.getElementById('orient-alpha').textContent = ((time * 10) % 360).toFixed(1) + '°';
+                    document.getElementById('orient-beta').textContent = (Math.sin(time) * 45).toFixed(1) + '°';
+                    document.getElementById('orient-gamma').textContent = (Math.cos(time) * 30).toFixed(1) + '°';
+                    
+                    // 模拟重力数据
+                    document.getElementById('gravity-x').textContent = (Math.sin(time) * 2).toFixed(2) + ' m/s²';
+                    document.getElementById('gravity-y').textContent = (Math.cos(time) * 1.5).toFixed(2) + ' m/s²';
+                    document.getElementById('gravity-z').textContent = (9.8 + Math.sin(time) * 0.3).toFixed(2) + ' m/s²';
+                    
+                    // 模拟计步器
+                    if (Math.random() > 0.98) {
+                        this.stepCount++;
+                        document.getElementById('step-count').textContent = this.stepCount;
+                        document.getElementById('step-status').textContent = '模拟检测';
+                    }
+                }, 100);
+            }
+
+            handleDeviceMotion(event) {
+                // 陀螺仪数据
+                if (event.rotationRate) {
+                    document.getElementById('gyro-x').textContent = 
+                        (event.rotationRate.alpha || 0).toFixed(2) + ' °/s';
+                    document.getElementById('gyro-y').textContent = 
+                        (event.rotationRate.beta || 0).toFixed(2) + ' °/s';
+                    document.getElementById('gyro-z').textContent = 
+                        (event.rotationRate.gamma || 0).toFixed(2) + ' °/s';
+                }
+
+                // 加速度计数据
+                if (event.acceleration) {
+                    const accelX = event.acceleration.x || 0;
+                    const accelY = event.acceleration.y || 0;
+                    const accelZ = event.acceleration.z || 0;
+                    
+                    document.getElementById('accel-x').textContent = accelX.toFixed(2) + ' m/s²';
+                    document.getElementById('accel-y').textContent = accelY.toFixed(2) + ' m/s²';
+                    document.getElementById('accel-z').textContent = accelZ.toFixed(2) + ' m/s²';
+                    
+                    // 计步器逻辑
+                    this.detectStep(accelX, accelY, accelZ);
+                }
+
+                // 重力传感器数据
+                if (event.accelerationIncludingGravity) {
+                    document.getElementById('gravity-x').textContent = 
+                        (event.accelerationIncludingGravity.x || 0).toFixed(2) + ' m/s²';
+                    document.getElementById('gravity-y').textContent = 
+                        (event.accelerationIncludingGravity.y || 0).toFixed(2) + ' m/s²';
+                    document.getElementById('gravity-z').textContent = 
+                        (event.accelerationIncludingGravity.z || 0).toFixed(2) + ' m/s²';
+                }
+            }
+
+            handleDeviceOrientation(event) {
+                document.getElementById('orient-alpha').textContent = 
+                    (event.alpha || 0).toFixed(1) + '°';
+                document.getElementById('orient-beta').textContent = 
+                    (event.beta || 0).toFixed(1) + '°';
+                document.getElementById('orient-gamma').textContent = 
+                    (event.gamma || 0).toFixed(1) + '°';
+            }
+
+            detectStep(x, y, z) {
+                // 计算加速度向量的模长
+                const magnitude = Math.sqrt(x*x + y*y + z*z);
+                const currentTime = Date.now();
+                
+                // 检测步数：当加速度变化超过阈值且距离上次检测有足够时间间隔
+                if (magnitude > this.stepThreshold && 
+                    currentTime - this.lastStepTime > 300) { // 300ms间隔避免重复计数
+                    this.stepCount++;
+                    this.lastStepTime = currentTime;
+                    document.getElementById('step-count').textContent = this.stepCount;
+                    document.getElementById('step-status').textContent = '检测中';
+                }
+            }
+
+            async tryNewSensorAPI() {
+                // 尝试使用新的传感器API (实验性功能)
+                if ('Accelerometer' in window) {
+                    try {
+                        const accelerometer = new Accelerometer({ frequency: 60 });
+                        accelerometer.addEventListener('reading', () => {
+                            // 新API的加速度计数据
+                        });
+                        accelerometer.start();
+                    } catch (error) {
+                        console.log('新传感器API不可用:', error);
+                    }
+                }
+
+                if ('Gyroscope' in window) {
+                    try {
+                        const gyroscope = new Gyroscope({ frequency: 60 });
+                        gyroscope.addEventListener('reading', () => {
+                            // 新API的陀螺仪数据
+                        });
+                        gyroscope.start();
+                    } catch (error) {
+                        console.log('新陀螺仪API不可用:', error);
+                    }
+                }
+            }
+
+            updateStatus(message, type = 'status') {
+                const statusElement = document.getElementById('status');
+                statusElement.className = `status ${type}`;
+                statusElement.querySelector('p').textContent = message;
+            }
+        }
+
+        // 页面加载完成后启动传感器监控
+        document.addEventListener('DOMContentLoaded', () => {
+            new SensorMonitor();
+        });
+
+        // 添加页面可见性检测，当页面重新可见时刷新传感器
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // 页面重新可见时可以重新启动传感器
+                console.log('页面重新可见，传感器继续工作');
+            }
+        });
+    </script>
+</body>
+</html>
